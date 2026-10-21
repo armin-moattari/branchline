@@ -6,11 +6,12 @@ A DJ set planner built around a **directed graph of transitions**. A song is a n
 
 ## Status
 
-- Done: pure TypeScript core in `src/graph`, `src/import`, and `src/library`, with 84 Vitest tests.
+- Done: pure TypeScript core in `src/graph`, `src/import`, and `src/library`, with 92 Vitest tests.
 - Done: `prototype/branchline.html`, a single-file working demo of the whole idea (reference for UI behavior, not production code).
 - Done: Next.js 16 (App Router) + React 19 + Tailwind v4 app in `src/app` and `src/components`.
 - Done: prototype UI ported (Roadmap step 2). State is saved to localStorage until Supabase lands.
-- Next: Rekordbox XML import screen (Roadmap step 3).
+- Done: Rekordbox XML import in the Import tab (Roadmap step 3).
+- Next: Supabase schema + auth + RLS (Roadmap step 4).
 
 ## Commands
 
@@ -27,8 +28,11 @@ npm run check     # both; run before every commit
 
 ```
 src/app/               Next.js App Router (layout, page, globals.css with Tailwind theme tokens)
-src/components/        React UI: Planner (state + localStorage), Sidebar, Controls, TreeCanvas, UnderTheHood
-src/library/library.ts immutable edits: addSong, removeSong, saveTransition, importPastedSet
+src/components/        React UI: Planner (state + localStorage), Sidebar, RekordboxImport, Controls,
+                       TreeCanvas, UnderTheHood
+src/library/library.ts immutable edits: addSong, removeSong, saveTransition, importPastedSet;
+                       findSong (title + artist match shared by both importers)
+src/library/rekordbox.ts applyRekordboxImport: merge chosen playlists into the library
 src/library/scene.ts   buildScene: tree → pixel positions, edge paths/labels/tones for the canvas
 src/library/storage.ts parse/serialize the saved state, validating every field
 src/graph/types.ts     Song, Transition, TreeNode, Direction
@@ -64,7 +68,7 @@ docs/decisions.md      architecture choices and why
 
 1. ~~Scaffold Next.js app in this repo (keep `src/graph`, `src/import`, tests passing).~~ Done.
 2. ~~Port the prototype UI: songs list, add transition, tree view with look ahead / look toward, depth, pathfinder target, playing-position slider.~~ Done.
-3. Rekordbox XML import screen (pick file → preview playlists → import as transitions).
+3. ~~Rekordbox XML import screen (pick file → preview playlists → import as transitions).~~ Done.
 4. Supabase schema + auth + RLS; persist songs and transitions.
 5. CI (typecheck + tests on push), deploy to Vercel.
 6. v2: local-first offline sync, Serato import, highlights, isolate-path-to-playlist.

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { TransitionGraph } from "@/graph";
 import {
   addSong,
+  applyRekordboxImport,
   buildScene,
   demoLibrary,
   importPastedSet,
@@ -22,6 +23,11 @@ import { Controls, DEFAULT_LENGTH_SEC } from "./Controls";
 import { Sidebar } from "./Sidebar";
 import { TreeCanvas } from "./TreeCanvas";
 import { UnderTheHood } from "./UnderTheHood";
+
+function importMessage(newTransitions: number, newSongs: number): string {
+  const plural = (n: number, word: string) => `${n} new ${word}${n === 1 ? "" : "s"}`;
+  return `Imported ${plural(newTransitions, "transition")} and ${plural(newSongs, "song")}.`;
+}
 
 function demoState(): AppState {
   const library = demoLibrary();
@@ -91,6 +97,7 @@ export function Planner() {
 
       <div className="grid grid-cols-1 gap-4 px-3 pt-2 pb-4 lg:grid-cols-[340px_minmax(0,1fr)] lg:px-5.5 lg:pb-5.5">
         <Sidebar
+          library={library}
           songs={sortedSongs}
           transitions={library.transitions}
           onAddSong={(song) => updateLibrary((lib) => addSong(lib, song))}
@@ -98,11 +105,15 @@ export function Planner() {
           onStartFrom={startFrom}
           onSaveTransition={(t) => updateLibrary((lib) => saveTransition(lib, t))}
           onRemoveTransition={(id) => updateLibrary((lib) => removeTransition(lib, id))}
-          onImport={(text) => {
+          onImportPaste={(text) => {
             const result = importPastedSet(library, text);
             updateLibrary(() => result.library);
-            const plural = (n: number, word: string) => `${n} new ${word}${n === 1 ? "" : "s"}`;
-            return `Imported ${plural(result.newTransitions, "transition")} and ${plural(result.newSongs, "song")}.`;
+            return importMessage(result.newTransitions, result.newSongs);
+          }}
+          onImportRekordbox={(parsed, playlistIndexes) => {
+            const result = applyRekordboxImport(library, parsed, playlistIndexes);
+            updateLibrary(() => result.library);
+            return importMessage(result.newTransitions, result.newSongs);
           }}
           onResetDemo={() => {
             if (!window.confirm("Replace all your songs and transitions with the demo data?")) return false;

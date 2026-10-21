@@ -1,4 +1,4 @@
-import type { Transition } from "../graph/types";
+import type { Song, Transition } from "../graph/types";
 import { toCamelot } from "../import/camelot";
 import { transitionsFromSet } from "../import/playlist";
 import type { IdFactory, Library } from "./types";
@@ -70,6 +70,15 @@ export function removeTransition(library: Library, transitionId: string): Librar
   return { ...library, transitions: library.transitions.filter((t) => t.id !== transitionId) };
 }
 
+/**
+ * The song an imported track refers to: same title, and same artist when both
+ * sides have one, ignoring case. Imports use this so a track is never added twice.
+ */
+export function findSong(songs: readonly Song[], title: string, artist: string): Song | undefined {
+  const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  return songs.find((s) => same(s.title, title) && (!artist || !s.artist || same(s.artist, artist)));
+}
+
 export interface PastedTrack {
   artist: string;
   title: string;
@@ -103,12 +112,9 @@ export interface PasteImportResult {
 export function importPastedSet(library: Library, text: string, makeId: IdFactory = newId): PasteImportResult {
   const songs = [...library.songs];
   let newSongs = 0;
-  const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
   const orderedIds = parsePastedSet(text).map(({ artist, title }) => {
-    const match = songs.find(
-      (s) => same(s.title, title) && (!artist || !s.artist || same(s.artist, artist)),
-    );
+    const match = findSong(songs, title, artist);
     if (match) return match.id;
     const song = { id: makeId(), title, artist, bpm: null, key: "", lengthSec: null, rating: null };
     songs.push(song);
