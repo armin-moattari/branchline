@@ -13,7 +13,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${figtree.variable} ${bricolage.variable}`}>
-      <body className="min-h-screen font-sans antialiased">{children}</body>
+      {/* Browser extensions often add attributes to <body>; don't report those as hydration errors. */}
+      <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
