@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Palette carried over from prototype/branchline.html. Dark by default, light via OS preference. */
+:root {
+  --bg: #17132a;
+  --panel: #211b3a;
+  --panel-2: #2b2449;
+  --line: #3a3160;
+  --text: #efeaff;
+  --muted: #a59dc7;
+  --accent: #ffb547;
+  --accent-2: #62d6e8;
+  --danger: #ff7a8a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f3f1fa;
+    --panel: #ffffff;
+    --panel-2: #ebe7f7;
+    --line: #d6d0ea;
+    --text: #1c1733;
+    --muted: #5f587c;
+    --accent: #b86e00;
+    --accent-2: #087f93;
+    --danger: #c0304a;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-figtree), system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
