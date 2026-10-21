@@ -2,7 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import type { Song, Transition } from "@/graph";
-import { formatTime, parseTime, type NewSong } from "@/library";
+import type { RekordboxImport as ParsedExport } from "@/import";
+import { formatTime, parseTime, type Library, type NewSong } from "@/library";
+import { RekordboxImport } from "./RekordboxImport";
 import { Button, DeleteButton, inputClass, KeyChip, Label } from "./ui";
 
 const TABS = [
@@ -13,6 +15,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export interface SidebarProps {
+  library: Library;
   /** Sorted by title, for lists and pickers. */
   songs: Song[];
   transitions: Transition[];
@@ -21,8 +24,9 @@ export interface SidebarProps {
   onStartFrom: (id: string) => void;
   onSaveTransition: (t: Omit<Transition, "id">) => void;
   onRemoveTransition: (id: string) => void;
-  /** Returns the message to show, e.g. how many transitions were added. */
-  onImport: (text: string) => string;
+  /** These return the message to show, e.g. how many transitions were added. */
+  onImportPaste: (text: string) => string;
+  onImportRekordbox: (parsed: ParsedExport, playlistIndexes: number[]) => string;
   /** Returns false if the user cancelled. */
   onResetDemo: () => boolean;
 }
@@ -49,11 +53,21 @@ export function Sidebar(props: SidebarProps) {
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`pane-${tab}`} aria-labelledby={`tab-${tab}`} className="overflow-auto p-3.5">
-        {tab === "songs" && <SongsPane {...props} />}
-        {tab === "transitions" && <TransitionsPane {...props} />}
-        {tab === "import" && <ImportPane {...props} />}
-      </div>
+      {/* Panes stay mounted while hidden, so switching tabs keeps a loaded file or half-typed text. */}
+      {TABS.map((t) => (
+        <div
+          key={t.id}
+          role="tabpanel"
+          id={`pane-${t.id}`}
+          aria-labelledby={`tab-${t.id}`}
+          hidden={tab !== t.id}
+          className="overflow-auto p-3.5"
+        >
+          {t.id === "songs" && <SongsPane {...props} />}
+          {t.id === "transitions" && <TransitionsPane {...props} />}
+          {t.id === "import" && <ImportPane {...props} />}
+        </div>
+      ))}
     </aside>
   );
 }
@@ -209,7 +223,7 @@ function TransitionsPane({ songs, transitions, onSaveTransition, onRemoveTransit
   );
 }
 
-function ImportPane({ onImport, onResetDemo }: SidebarProps) {
+function ImportPane({ library, onImportPaste, onImportRekordbox, onResetDemo }: SidebarProps) {
   const [text, setText] = useState("");
   const [message, setMessage] = useState("");
 
@@ -219,12 +233,14 @@ function ImportPane({ onImport, onResetDemo }: SidebarProps) {
       setMessage("Paste at least two tracks, one per line.");
       return;
     }
-    setMessage(onImport(text));
+    setMessage(onImportPaste(text));
     setText("");
   }
 
   return (
     <>
+      <RekordboxImport library={library} onImport={onImportRekordbox} />
+      <h2 className="mb-1 font-display text-[15px] font-bold">Paste a set</h2>
       <p className="mb-3 text-[13px] text-muted">
         Paste a played set, one track per line, in order. Each back-to-back pair becomes a transition. Lines like{" "}
         <b>Artist - Title</b> or just <b>Title</b> both work; unknown tracks are added to your songs.

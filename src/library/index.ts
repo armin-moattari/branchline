@@ -4,3 +4,4 @@ export * from "./library";
 export * from "./demo";
 export * from "./storage";
 export * from "./scene";
+export * from "./rekordbox";
