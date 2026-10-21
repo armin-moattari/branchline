@@ -6,10 +6,11 @@ A DJ set planner built around a **directed graph of transitions**. A song is a n
 
 ## Status
 
-- Done: pure TypeScript core in `src/graph` and `src/import`, with 47 Vitest tests.
+- Done: pure TypeScript core in `src/graph`, `src/import`, and `src/library`, with 84 Vitest tests.
 - Done: `prototype/branchline.html`, a single-file working demo of the whole idea (reference for UI behavior, not production code).
-- Done: Next.js 16 (App Router) + React 19 + Tailwind v4 scaffold in `src/app`, with a placeholder home page that uses `src/graph`.
-- Next: port the prototype UI (Roadmap step 2).
+- Done: Next.js 16 (App Router) + React 19 + Tailwind v4 app in `src/app` and `src/components`.
+- Done: prototype UI ported (Roadmap step 2). State is saved to localStorage until Supabase lands.
+- Next: Rekordbox XML import screen (Roadmap step 3).
 
 ## Commands
 
@@ -25,7 +26,11 @@ npm run check     # both; run before every commit
 ## Layout
 
 ```
-src/app/               Next.js App Router (layout, pages, globals.css with Tailwind theme tokens)
+src/app/               Next.js App Router (layout, page, globals.css with Tailwind theme tokens)
+src/components/        React UI: Planner (state + localStorage), Sidebar, Controls, TreeCanvas, UnderTheHood
+src/library/library.ts immutable edits: addSong, removeSong, saveTransition, importPastedSet
+src/library/scene.ts   buildScene: tree → pixel positions, edge paths/labels/tones for the canvas
+src/library/storage.ts parse/serialize the saved state, validating every field
 src/graph/types.ts     Song, Transition, TreeNode, Direction
 src/graph/graph.ts     TransitionGraph (adjacency both ways), distancesTo (reverse BFS),
                        shortestPath, buildTree (depth-limited DFS with loop stubs + cue "passed")
@@ -42,7 +47,7 @@ docs/decisions.md      architecture choices and why
 
 - **Stack ("Lean")**: Next.js (App Router) + TypeScript, Supabase (Postgres + Auth), deployed on Vercel. Vitest for unit tests, Playwright for a few end-to-end tests, GitHub Actions CI.
 - **Graph runs on the client.** One DJ's graph is small (thousands of edges at most), so load all songs and transitions once and traverse in the browser. No graph database. The server is CRUD + auth.
-- **`src/graph` and `src/import` stay framework-free.** No React, Next, or DB imports in them. The app imports them via the `@/graph` and `@/import` path aliases; keep them pure and tested.
+- **`src/graph`, `src/import`, and `src/library` stay framework-free.** No React, Next, or DB imports in them. The app imports them via `@/graph`, `@/import`, `@/library`; keep them pure and tested. Components stay thin: logic that can be tested without a DOM goes in `src/library`.
 - **Styling**: Tailwind v4. Colors are CSS variables in `src/app/globals.css` (ported from the prototype) exposed as Tailwind colors (`bg-panel`, `text-muted`, `text-accent`, ...).
 - **Rekordbox import parses in the browser.** The XML never leaves the user's machine; only the resulting songs/transitions are saved.
 - **Offline / local-first is v2**, not v1.
@@ -58,7 +63,7 @@ docs/decisions.md      architecture choices and why
 ## Roadmap
 
 1. ~~Scaffold Next.js app in this repo (keep `src/graph`, `src/import`, tests passing).~~ Done.
-2. Port the prototype UI: songs list, add transition, tree view with look ahead / look toward, depth, pathfinder target, playing-position slider.
+2. ~~Port the prototype UI: songs list, add transition, tree view with look ahead / look toward, depth, pathfinder target, playing-position slider.~~ Done.
 3. Rekordbox XML import screen (pick file → preview playlists → import as transitions).
 4. Supabase schema + auth + RLS; persist songs and transitions.
 5. CI (typecheck + tests on push), deploy to Vercel.
@@ -66,7 +71,7 @@ docs/decisions.md      architecture choices and why
 
 ## How to work in this repo
 
-- Write or update tests with every change to `src/graph` or `src/import`. Prefer test-first for logic.
+- Write or update tests with every change to `src/graph`, `src/import`, or `src/library`. Prefer test-first for logic.
 - Keep modules small and single-purpose; refactor when a file grows past one clear job.
 - Run `npm run check` before committing. Small commits with clear messages (imperative mood, e.g. "Add shortest-path helper").
 - Use fictional track names in fixtures and demo data.
