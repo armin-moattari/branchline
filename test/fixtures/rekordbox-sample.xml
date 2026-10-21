@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written fixture in the shape of a Rekordbox "Export Collection in xml format" file. Tracks are fictional. -->
+<DJ_PLAYLISTS Version="1.0.0">
+  <PRODUCT Name="rekordbox" Version="7.0.0" Company="AlphaTheta"/>
+  <COLLECTION Entries="4">
+    <TRACK TrackID="1" Name="Low Tide Radio" Artist="Maren Vos" Genre="House" TotalTime="372" AverageBpm="124.00" Tonality="8A" Rating="204" Location="file://localhost/Music/low-tide-radio.mp3"/>
+    <TRACK TrackID="2" Name="Copper Lights" Artist="Juno Estate" Genre="House" TotalTime="345" AverageBpm="125.00" Tonality="9A" Rating="153" Location="file://localhost/Music/copper-lights.mp3"/>
+    <TRACK TrackID="3" Name="Night Bus to Nowhere" Artist="Kalt" Genre="Techno" TotalTime="410" AverageBpm="126.00" Tonality="C" Rating="255" Location="file://localhost/Music/night-bus.mp3"/>
+    <TRACK TrackID="4" Name="Paper Moons" Artist="Maren Vos" Genre="Deep House" TotalTime="350" AverageBpm="120.00" Tonality="5A" Rating="0" Location="file://localhost/Music/paper-moons.mp3"/>
+  </COLLECTION>
+  <PLAYLISTS>
+    <NODE Type="0" Name="ROOT" Count="2">
+      <NODE Type="0" Name="Gigs" Count="1">
+        <NODE Name="Saturday" Type="1" KeyType="0" Entries="4">
+          <TRACK Key="1"/>
+          <TRACK Key="2"/>
+          <TRACK Key="3"/>
+          <TRACK Key="99"/>
+        </NODE>
+      </NODE>
+      <NODE Name="Warmup" Type="1" KeyType="1" Entries="2">
+        <TRACK Key="file://localhost/Music/paper-moons.mp3"/>
+        <TRACK Key="file://localhost/Music/low-tide-radio.mp3"/>
+      </NODE>
+    </NODE>
+  </PLAYLISTS>
+</DJ_PLAYLISTS>

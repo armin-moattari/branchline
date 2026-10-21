@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Branchline — transition graph prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#17132a; --panel:#211b3a; --panel-2:#2b2449; --line:#3a3160;
+  --text:#efeaff; --muted:#a59dc7; --accent:#ffb547; --accent-2:#62d6e8; --danger:#ff7a8a;
+  --chip-text:#15112a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f1fa; --panel:#ffffff; --panel-2:#ebe7f7; --line:#d6d0ea;
+    --text:#1c1733; --muted:#5f587c; --accent:#b86e00; --accent-2:#087f93; --danger:#c0304a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17132a; --panel:#211b3a; --panel-2:#2b2449; --line:#3a3160;
+  --text:#efeaff; --muted:#a59dc7; --accent:#ffb547; --accent-2:#62d6e8; --danger:#ff7a8a;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px); height:100%}
+body{margin:0; background:var(--bg); color:var(--text); font:15px/1.5 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif; min-height:100%}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif; margin:0; font-weight:700}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+header{display:flex; align-items:baseline; gap:14px; padding:18px 22px 10px; flex-wrap:wrap}
+header h1{font-size:28px; letter-spacing:-.02em}
+header p{margin:0; color:var(--muted)}
+
+.app{display:grid; grid-template-columns:340px minmax(0,1fr); gap:16px; padding:8px 22px 22px}
+@media (max-width:880px){ .app{grid-template-columns:1fr; padding:8px 12px 16px} header{padding:16px 12px 8px} }
+
+.side{background:var(--panel); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; min-height:0; max-height:calc(100vh - 110px)}
+@media (max-width:880px){ .side{max-height:none} }
+.tabs{display:flex; border-bottom:1px solid var(--line)}
+.tabs button{flex:1; background:none; border:0; padding:12px 8px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-weight:600}
+.tabs button[aria-selected="true"]{color:var(--text); border-bottom-color:var(--accent)}
+.pane{padding:14px; overflow:auto; display:none}
+.pane.on{display:block}
+
+label{display:block; font-size:13px; color:var(--muted); margin:0 0 4px}
+input,select,textarea{width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+textarea{min-height:170px; resize:vertical}
+.row{display:grid; gap:8px; grid-template-columns:1fr 1fr; margin-bottom:8px}
+.row.three{grid-template-columns:1fr 1fr 1fr}
+.field{margin-bottom:8px}
+.btn{background:var(--accent); color:var(--chip-text); border:0; border-radius:8px; padding:9px 14px; font-weight:600; cursor:pointer}
+.btn.ghost{background:transparent; color:var(--text); border:1px solid var(--line)}
+.btn.small{padding:4px 9px; font-size:13px}
+.note{color:var(--muted); font-size:13px; margin:6px 0 12px}
+form{border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:12px}
+
+.list{list-style:none; margin:0; padding:0}
+.list li{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.grow{flex:1; min-width:0}
+.t{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.a{color:var(--muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.x{background:none; border:0; color:var(--muted); cursor:pointer; font-size:18px; line-height:1; padding:4px 6px; border-radius:6px}
+.x:hover{color:var(--danger)}
+
+.key{display:inline-grid; place-items:center; min-width:36px; height:24px; padding:0 6px; border-radius:6px; font-weight:700; font-size:12px; color:var(--chip-text); flex:none}
+
+.main{display:flex; flex-direction:column; gap:12px; min-width:0}
+.controls{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px 14px; display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); align-items:end}
+.seg{display:flex; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:3px}
+.seg button{flex:1; background:none; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; color:var(--muted); font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--chip-text)}
+input[type=range]{padding:0; accent-color:var(--accent); background:none; border:0; height:32px}
+
+.canvas{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:auto; min-height:380px; max-height:calc(100vh - 290px)}
+@media (max-width:880px){ .canvas{max-height:70vh} }
+.stage{position:relative}
+.stage svg{position:absolute; inset:0; pointer-events:none}
+.node{position:absolute; width:210px; height:64px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:8px 10px; display:flex; gap:9px; align-items:center; cursor:pointer; text-align:left; transition:border-color .15s, opacity .15s}
+.node:hover{border-color:var(--accent)}
+.node.root{border:2px solid var(--accent)}
+.node.dim{opacity:.35}
+.node.loop{border-style:dashed; background:transparent; height:44px; margin-top:10px}
+.node .meta{font-size:12px; color:var(--muted)}
+.badge{position:absolute; top:-9px; right:8px; background:var(--accent-2); color:var(--chip-text); font-size:11px; font-weight:700; padding:1px 7px; border-radius:99px}
+.badge.goal{background:var(--accent)}
+.edge-label{position:absolute; font-size:11px; color:var(--muted); background:var(--panel); padding:0 4px; border-radius:4px; transform:translate(-50%,-50%); white-space:nowrap; pointer-events:none}
+.edge-label.passed{color:var(--danger)}
+.empty{padding:40px 24px; color:var(--muted); max-width:52ch}
+
+.hood{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px}
+.hood h2{font-size:17px; margin-bottom:6px}
+.hood p{margin:4px 0; color:var(--muted); max-width:78ch}
+.hood code{background:var(--panel-2); padding:1px 5px; border-radius:4px; color:var(--text); font-size:13px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); margin-top:8px}
+.legend span::before{content:""; display:inline-block; width:18px; height:3px; vertical-align:middle; margin-right:6px; background:var(--line)}
+.legend .l-path::before{background:var(--accent)}
+.legend .l-pass::before{background:var(--danger)}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Branchline</h1>
+  <p>Save transitions you trust. Explore every set they make.</p>
+</header>
+
+<div class="app">
+  <aside class="side">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="songs">Songs</button>
+      <button role="tab" aria-selected="false" data-tab="trans">Transitions</button>
+      <button role="tab" aria-selected="false" data-tab="import">Import</button>
+    </div>
+
+    <div class="pane on" id="pane-songs">
+      <form id="songForm">
+        <div class="field"><label for="sTitle">Title</label><input id="sTitle" required></div>
+        <div class="field"><label for="sArtist">Artist</label><input id="sArtist"></div>
+        <div class="row three">
+          <div><label for="sBpm">BPM</label><input id="sBpm" type="number" min="40" max="220"></div>
+          <div><label for="sKey">Key</label><input id="sKey" placeholder="8A"></div>
+          <div><label for="sLen">Length</label><input id="sLen" placeholder="6:00"></div>
+        </div>
+        <button class="btn">Add song</button>
+      </form>
+      <ul class="list" id="songList"></ul>
+    </div>
+
+    <div class="pane" id="pane-trans">
+      <form id="transForm">
+        <div class="field"><label for="tFrom">From</label><select id="tFrom"></select></div>
+        <div class="field"><label for="tTo">Into</label><select id="tTo"></select></div>
+        <div class="field"><label for="tCue">Mix starts at (in the first track)</label><input id="tCue" placeholder="4:10, optional"></div>
+        <button class="btn">Save transition</button>
+      </form>
+      <ul class="list" id="transList"></ul>
+    </div>
+
+    <div class="pane" id="pane-import">
+      <p class="note">Paste a played set, one track per line, in order. Each back-to-back pair becomes a transition. Lines like <b>Artist - Title</b> or just <b>Title</b> both work; unknown tracks are added to your songs.</p>
+      <textarea id="importText" placeholder="Maren Vos - Low Tide Radio&#10;Juno Estate - Copper Lights&#10;Kalt - Night Bus to Nowhere"></textarea>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
+        <button class="btn" id="importBtn">Import transitions</button>
+        <button class="btn ghost" id="resetBtn">Reset to demo data</button>
+      </div>
+      <p class="note" id="importMsg" role="status"></p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="controls">
+      <div><label for="cRoot">Start from</label><select id="cRoot"></select></div>
+      <div><label>Direction</label>
+        <div class="seg" role="group" aria-label="Direction">
+          <button data-mode="ahead">Look ahead</button>
+          <button data-mode="toward">Look toward</button>
+        </div>
+      </div>
+      <div><label for="cDepth">Depth: <span id="depthVal"></span></label><input id="cDepth" type="range" min="1" max="6"></div>
+      <div><label for="cTarget">Pathfinder target</label><select id="cTarget"></select></div>
+      <div id="posWrap"><label for="cPos">Playing position: <span id="posVal"></span></label><input id="cPos" type="range" min="0" step="5"></div>
+    </div>
+
+    <div class="canvas" id="canvas"><div class="stage" id="stage"></div></div>
+
+    <section class="hood" aria-live="polite">
+      <h2>Under the hood</h2>
+      <div id="hoodText"></div>
+      <div class="legend"><span class="l-path">shortest route to target</span><span class="l-pass">cue point already passed</span><span>saved transition</span></div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+const KEY = 'branchline:v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = p => p + Math.random().toString(36).slice(2,9);
+const parseTime = s => { if(s==null||s==='') return null; const m=/^(\d+):(\d{1,2})$/.exec(String(s).trim()); if(m) return (+m[1])*60+(+m[2]); const n=parseFloat(s); return isNaN(n)?null:n; };
+const fmt = sec => sec==null ? '' : Math.floor(sec/60)+':'+String(Math.round(sec%60)).padStart(2,'0');
+
+function seed(){
+  const S = (id,title,artist,bpm,key,len) => ({id,title,artist,bpm,key,len});
+  const songs = [
+    S('s1','Low Tide Radio','Maren Vos',124,'8A',372),
+    S('s2','Copper Lights','Juno Estate',125,'9A',345),
+    S('s3','Night Bus to Nowhere','Kalt',126,'8B',410),
+    S('s4','Pressure Garden','Ossie Bloom',124,'7A',388),
+    S('s5','Saltwater Static','Tamsin Ray',128,'9B',400),
+    S('s6','Glass Pavilion','Hollow Coast',122,'6A',420),
+    S('s7','Runway Lights','DJ Perenne',126,'10A',330),
+    S('s8','Faultline','Nnamdi Vale',128,'10B',395),
+    S('s9','Summer Ledger','Ilse & Rowe',123,'8A',360),
+    S('s10','Afterglow Protocol','Kalt',130,'11A',380),
+    S('s11','Paper Moons','Maren Vos',120,'5A',350)
+  ];
+  const T = (from,to,cue) => ({id:uid('t'),from,to,cue:cue??null});
+  const transitions = [
+    T('s1','s2',250), T('s1','s4',230), T('s1','s9',150), T('s2','s3',280), T('s2','s7',260),
+    T('s3','s8',300), T('s3','s5',320), T('s4','s6',290), T('s4','s9',270), T('s6','s11',330),
+    T('s9','s2',240), T('s7','s8',250), T('s7','s5',240), T('s5','s10',310), T('s8','s10',300),
+    T('s11','s1',270)
+  ];
+  return {songs, transitions, view:{root:'s1',mode:'ahead',depth:3,target:'',pos:0}};
+}
+
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch(e){ state = seed(); }
+if(!state.view) state.view = {root:'s1',mode:'ahead',depth:3,target:'',pos:0};
+const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+const song = id => state.songs.find(s => s.id === id);
+
+function keyColor(k){
+  const m = /^(\d{1,2})([AB])$/i.exec(k||'');
+  if(!m) return 'var(--muted)';
+  const h = ((+m[1])*30 + 150) % 360;
+  return m[2].toUpperCase()==='A' ? `hsl(${h} 62% 58%)` : `hsl(${h} 78% 74%)`;
+}
+function keyChip(k){ return `<span class="key" style="background:${keyColor(k)}">${esc(k||'—')}</span>`; }
+
+/* ---------- graph ---------- */
+function adjacency(){
+  const out={}, inn={};
+  state.songs.forEach(s => { out[s.id]=[]; inn[s.id]=[]; });
+  state.transitions.forEach(t => { if(out[t.from] && inn[t.to]){ out[t.from].push(t); inn[t.to].push(t); } });
+  return {out, inn};
+}
+
+// Reverse BFS from the target: one pass gives every song's distance to it.
+function distancesTo(target, A){
+  const dist = {[target]:0}, q=[target];
+  while(q.length){
+    const v = q.shift();
+    for(const e of A.inn[v]) if(dist[e.from]===undefined){ dist[e.from]=dist[v]+1; q.push(e.from); }
+  }
+  return dist;
+}
+
+// Depth-limited DFS that unrolls the graph into a tree. A song already on the current
+// path is shown as a "loop" stub instead of expanding forever.
+function buildTree(rootId, mode, depth, A, pos){
+  let count = 0; const LIMIT = 350; let truncated = false;
+  const root = song(rootId);
+  function rec(id, d, onPath, edge, passed){
+    count++;
+    const node = {id, edge, d, passed, children:[]};
+    if(d >= depth) return node;
+    const edges = mode==='ahead' ? A.out[id] : A.inn[id];
+    for(const e of edges){
+      if(count >= LIMIT){ truncated = true; break; }
+      const next = mode==='ahead' ? e.to : e.from;
+      const isPassed = passed || (mode==='ahead' && d===0 && e.cue!=null && e.cue < pos);
+      if(onPath.has(next)){ count++; node.children.push({id:next, edge:e, d:d+1, loop:true, passed:isPassed, children:[]}); continue; }
+      onPath.add(next);
+      node.children.push(rec(next, d+1, onPath, e, isPassed));
+      onPath.delete(next);
+    }
+    return node;
+  }
+  return {tree: root ? rec(rootId, 0, new Set([rootId]), null, false) : null, count, truncated};
+}
+
+// Tidy-ish layout: leaves get consecutive rows, parents sit centered on their children.
+function layout(tree){
+  let leaf=0; const nodes=[]; let maxD=0;
+  (function walk(n){
+    maxD = Math.max(maxD, n.d);
+    if(!n.children.length) n.y = leaf++;
+    else { n.children.forEach(walk); n.y = (n.children[0].y + n.children[n.children.length-1].y)/2; }
+    nodes.push(n);
+  })(tree);
+  return {nodes, leaves:leaf, maxD};
+}
+
+/* ---------- render: sidebar ---------- */
+function renderSongs(){
+  const sorted = [...state.songs].sort((a,b)=>a.title.localeCompare(b.title));
+  $('#songList').innerHTML = sorted.map(s => `
+    <li>${keyChip(s.key)}
+      <div class="grow"><div class="t">${esc(s.title)}</div><div class="a">${esc(s.artist)}${s.bpm?` · ${s.bpm} BPM`:''}</div></div>
+      <button class="btn ghost small" data-root="${s.id}">Start here</button>
+      <button class="x" data-del-song="${s.id}" aria-label="Delete ${esc(s.title)}">×</button>
+    </li>`).join('') || '<li class="note">No songs yet. Add one above.</li>';
+  const opts = sorted.map(s => `<option value="${s.id}">${esc(s.title)} — ${esc(s.artist)}</option>`).join('');
+  ['#tFrom','#tTo','#cRoot'].forEach(sel => { const v=$(sel).value; $(sel).innerHTML = opts; if(v) $(sel).value=v; });
+  const tv = state.view.target;
+  $('#cTarget').innerHTML = '<option value="">None</option>' + opts;
+  $('#cTarget').value = song(tv) ? tv : '';
+  $('#cRoot').value = state.view.root;
+}
+function renderTrans(){
+  $('#transList').innerHTML = state.transitions.map(t => {
+    const a=song(t.from), b=song(t.to); if(!a||!b) return '';
+    return `<li><div class="grow"><div class="t">${esc(a.title)} → ${esc(b.title)}</div>
+      <div class="a">${t.cue!=null?`mix at ${fmt(t.cue)} · `:''}${esc(a.key||'?')} → ${esc(b.key||'?')}</div></div>
+      <button class="x" data-del-trans="${t.id}" aria-label="Delete transition">×</button></li>`;
+  }).join('') || '<li class="note">No transitions yet.</li>';
+}
+
+/* ---------- render: tree ---------- */
+const COLW=270, ROWH=82, NW=210, NH=64, PAD=24;
+function renderTree(){
+  const v = state.view, A = adjacency();
+  if(!song(v.root)) v.root = state.songs[0]?.id;
+  const root = song(v.root);
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode===v.mode));
+  $('#cDepth').value = v.depth; $('#depthVal').textContent = v.depth;
+  $('#posWrap').style.display = v.mode==='ahead' ? '' : 'none';
+  if(root){ $('#cPos').max = root.len || 420; v.pos = Math.min(v.pos, root.len||420); $('#cPos').value = v.pos; $('#posVal').textContent = fmt(v.pos); }
+
+  const stage = $('#stage');
+  if(!root){ stage.style.width=''; stage.style.height=''; stage.innerHTML = '<div class="empty">Add a song to start your graph.</div>'; $('#hoodText').innerHTML=''; return; }
+
+  const dist = v.target && song(v.target) ? distancesTo(v.target, A) : null;
+  const {tree, count, truncated} = buildTree(v.root, v.mode, v.depth, A, v.pos);
+  const {nodes, leaves, maxD} = layout(tree);
+  const W = (maxD+1)*COLW - (COLW-NW) + PAD*2, H = Math.max(1,leaves)*ROWH + PAD*2;
+  stage.style.width = W+'px'; stage.style.height = H+'px';
+  const X = n => PAD + (v.mode==='ahead' ? n.d : (maxD - n.d)) * COLW;
+  const Y = n => PAD + n.y*ROWH;
+
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs>${['line','accent','danger'].map(c=>`<marker id="ar-${c}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--${c})"/></marker>`).join('')}</defs>`;
+  let labels = '', html = '';
+
+  for(const n of nodes){
+    for(const c of n.children){
+      // Arrow always points in playing order: from the earlier track into the later one.
+      const fromN = v.mode==='ahead' ? n : c, toN = v.mode==='ahead' ? c : n;
+      const x1 = X(fromN)+NW, y1 = Y(fromN)+NH/2, x2 = X(toN), y2 = Y(toN)+NH/2 + (toN.loop?0:0);
+      const cy2 = c.loop && v.mode==='ahead' ? Y(c)+NH/2 : y2;
+      const cy1 = c.loop && v.mode==='toward' ? Y(c)+NH/2 : y1;
+      const mx = (x1+x2)/2;
+      const onRoute = dist && dist[fromN.id]!==undefined && dist[toN.id]!==undefined && dist[toN.id]===dist[fromN.id]-1;
+      const col = c.passed ? 'danger' : onRoute ? 'accent' : 'line';
+      svg += `<path d="M${x1},${cy1} C${mx},${cy1} ${mx},${cy2} ${x2-2},${cy2}" fill="none" stroke="var(--${col})" stroke-width="${onRoute?2.5:1.6}" ${c.passed?'stroke-dasharray="5 5"':''} marker-end="url(#ar-${col})"/>`;
+      const a = song(c.edge.from), b = song(c.edge.to);
+      const bits = [];
+      if(c.edge.cue!=null) bits.push('@'+fmt(c.edge.cue));
+      if(a?.bpm && b?.bpm){ const d=b.bpm-a.bpm; bits.push((d>0?'+':'')+d+' BPM'); }
+      if(bits.length) labels += `<div class="edge-label ${c.passed?'passed':''}" style="left:${mx}px; top:${(cy1+cy2)/2}px">${esc(bits.join('  '))}</div>`;
+    }
+  }
+  svg += '</svg>';
+
+  for(const n of nodes){
+    const s = song(n.id); if(!s) continue;
+    const reach = dist ? dist[n.id] : undefined;
+    const dim = n.passed || (dist && reach===undefined);
+    let badge = '';
+    if(dist && reach===0) badge = '<span class="badge goal">target</span>';
+    else if(dist && reach!==undefined) badge = `<span class="badge">${reach} to target</span>`;
+    if(n.loop){
+      html += `<button class="node loop ${dim?'dim':''}" style="left:${X(n)}px; top:${Y(n)}px" data-root="${n.id}" title="Already earlier in this path">
+        <div class="grow"><div class="meta">loops back to</div><div class="t">${esc(s.title)}</div></div></button>`;
+    } else {
+      html += `<button class="node ${n.d===0?'root':''} ${dim?'dim':''}" style="left:${X(n)}px; top:${Y(n)}px" data-root="${n.id}" aria-label="${esc(s.title)} by ${esc(s.artist)}. Start from here.">
+        ${keyChip(s.key)}<div class="grow"><div class="t">${esc(s.title)}</div><div class="meta">${esc(s.artist)}${s.bpm?` · ${s.bpm}`:''}</div></div>${badge}</button>`;
+    }
+  }
+  stage.innerHTML = svg + labels + html;
+
+  // Explain what just ran.
+  const V = state.songs.length, E = state.transitions.length;
+  const passedCount = v.mode==='ahead' ? A.out[v.root].filter(e => e.cue!=null && e.cue < v.pos).length : 0;
+  let t = `<p>Your library is a directed graph with <code>${V}</code> songs (nodes) and <code>${E}</code> transitions (edges). `;
+  t += v.mode==='ahead'
+    ? `Look ahead ran a depth-limited DFS over <b>outgoing</b> edges from <b>${esc(root.title)}</b>, ${v.depth} step${v.depth>1?'s':''} deep, and unrolled the graph into a tree of <code>${count}</code> nodes.</p>`
+    : `Look toward ran the same DFS over <b>incoming</b> edges (the reversed graph), so every branch is a path you know that ends at <b>${esc(root.title)}</b>. <code>${count}</code> nodes.</p>`;
+  t += `<p>Songs already on the current path are shown as dashed "loops back" stubs. Without that check, a cycle like A → B → A would expand forever.${truncated?' The tree hit the 350-node cap, so reduce the depth to see it all.':''}</p>`;
+  if(dist){
+    const reachable = Object.keys(dist).length - 1;
+    t += `<p>Pathfinder ran one BFS backward from <b>${esc(song(v.target).title)}</b>. That labels every song with its fewest-transitions distance to the target in O(V + E); <code>${reachable}</code> song${reachable===1?'':'s'} can reach it. Amber edges step one closer each time.</p>`;
+  }
+  if(v.mode==='ahead') t += `<p>Timing: at <code>${fmt(v.pos)}</code> into the current track, <code>${passedCount}</code> of its transitions have a cue point you've already passed, so those branches are dimmed.</p>`;
+  $('#hoodText').innerHTML = t;
+}
+
+function renderAll(){ renderSongs(); renderTrans(); renderTree(); save(); }
+
+/* ---------- events ---------- */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x===b));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id==='pane-'+b.dataset.tab));
+}));
+
+$('#songForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const title = $('#sTitle').value.trim(); if(!title) return;
+  state.songs.push({id:uid('s'), title, artist:$('#sArtist').value.trim(), bpm:+$('#sBpm').value||null,
+    key:$('#sKey').value.trim().toUpperCase(), len:parseTime($('#sLen').value)||360});
+  e.target.reset(); renderAll();
+});
+
+$('#transForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const from=$('#tFrom').value, to=$('#tTo').value;
+  if(!from || !to || from===to) return;
+  const cue = parseTime($('#tCue').value);
+  const dup = state.transitions.find(t => t.from===from && t.to===to);
+  if(dup) dup.cue = cue ?? dup.cue; else state.transitions.push({id:uid('t'), from, to, cue});
+  $('#tCue').value=''; renderAll();
+});
+
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-root]');
+  if(r){ state.view.root = r.dataset.root; state.view.pos = 0; renderAll(); return; }
+  const ds = e.target.closest('[data-del-song]');
+  if(ds){ const id=ds.dataset.delSong; state.songs=state.songs.filter(s=>s.id!==id); state.transitions=state.transitions.filter(t=>t.from!==id&&t.to!==id); renderAll(); return; }
+  const dt = e.target.closest('[data-del-trans]');
+  if(dt){ state.transitions=state.transitions.filter(t=>t.id!==dt.dataset.delTrans); renderAll(); }
+});
+
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { state.view.mode=b.dataset.mode; renderTree(); save(); }));
+$('#cRoot').addEventListener('change', e => { state.view.root=e.target.value; state.view.pos=0; renderTree(); save(); });
+$('#cDepth').addEventListener('input', e => { state.view.depth=+e.target.value; renderTree(); save(); });
+$('#cTarget').addEventListener('change', e => { state.view.target=e.target.value; renderTree(); save(); });
+$('#cPos').addEventListener('input', e => { state.view.pos=+e.target.value; renderTree(); save(); });
+
+$('#importBtn').addEventListener('click', () => {
+  const lines = $('#importText').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length < 2){ $('#importMsg').textContent = 'Paste at least two tracks, one per line.'; return; }
+  let newSongs=0, newTrans=0; const ids=[];
+  for(const line of lines){
+    const i = line.indexOf(' - ');
+    const artist = i>0 ? line.slice(0,i).trim() : '', title = i>0 ? line.slice(i+3).trim() : line;
+    let s = state.songs.find(x => x.title.toLowerCase()===title.toLowerCase() && (!artist || !x.artist || x.artist.toLowerCase()===artist.toLowerCase()));
+    if(!s){ s={id:uid('s'), title, artist, bpm:null, key:'', len:360}; state.songs.push(s); newSongs++; }
+    ids.push(s.id);
+  }
+  for(let k=0;k<ids.length-1;k++){
+    const from=ids[k], to=ids[k+1];
+    if(from!==to && !state.transitions.some(t=>t.from===from&&t.to===to)){ state.transitions.push({id:uid('t'),from,to,cue:null}); newTrans++; }
+  }
+  $('#importMsg').textContent = `Imported ${newTrans} new transition${newTrans===1?'':'s'} and ${newSongs} new song${newSongs===1?'':'s'}.`;
+  $('#importText').value=''; renderAll();
+});
+$('#resetBtn').addEventListener('click', () => { state = seed(); $('#importMsg').textContent='Demo data restored.'; renderAll(); });
+
+renderAll();
+})();
+</script>
+</body>
+</html>
